@@ -11,13 +11,14 @@
 %% API
 %%=================================================================
 -export([
-  subscribe/3,
+  subscribe/4,
   unsubscribe/3,
-  notify/2
+  notify/2,
+  lookup/1,
+  wait/1,wait/2,wait/3
 ]).
 
 -define(SUBSCRIPTIONS,esubscriptions).
--define(SUBSCRIBE_TIMEOUT,30000).
 
 -define(LOGERROR(Text),lager:error(Text)).
 -define(LOGERROR(Text,Params),lager:error(Text,Params)).
@@ -60,14 +61,14 @@ init( Sup )->
 %%	Subscriptions API
 %%=================================================================
 
-subscribe(Term, Nodes, PID)->
+subscribe(Term, Nodes, PID, Timeout)->
   case whereis( ?MODULE ) of
     Server when is_pid( Server )->
       Server ! {subscribe, Term, Nodes, _ReplyTo = self() , PID},
       receive
         {Server,YesNodes,NoNodes} -> {YesNodes,NoNodes}
       after
-        ?SUBSCRIBE_TIMEOUT->
+        Timeout->
           {error, timeout}
       end;
     _->
@@ -84,13 +85,44 @@ unsubscribe( Term, Nodes, PID )->
   end.
 
 notify( Term, Action )->
-  case ets:lookup(?SUBSCRIPTIONS, Term) of
+  try case ets:lookup(?SUBSCRIPTIONS, Term) of
     [] ->
-      ignore;
+      ok;
     [#sub{ clients = Clients }]->
-      [ C ! {subscription, Term, Action} || C <- Clients ]
-  end,
-  ok.
+      Node = node(), Self = self(),
+      [ C ! {'$esubscription', Term, Action, Node, Self} || C <- Clients ],
+      ok
+  end catch
+    _:_-> {error, not_available}
+  end.
+
+lookup( Term )->
+  receive
+    {'$esubscription', Term, Action, Node, Actor}->
+      [{Term,Action,Node,Actor} | lookup( Term ) ]
+  after
+    0->[]
+  end.
+
+wait( Term, Timeout ) when Timeout >0->
+  TS0 = erlang:system_time(millisecond),
+  receive
+    {'$esubscription', Term, Action, Node, Actor}->
+      [{Term,Action,Node,Actor} | wait( Term, Timeout-(erlang:system_time(millisecond) -TS0 )) ]
+  after
+    Timeout->[]
+  end.
+
+wait( Term, Timeout, InFilter )->
+  Filter = compile_filter( maps:to_list(InFilter) ),
+  wait_filter( Term, Filter, Timeout ).
+compile_filter()
+  Action =
+    case maps:is_key( action, Filter) of
+      true -> [ maps:get(action,Filter) };
+      false->
+    end
+
 
 %%---------------------------------------------------------------------
 %%  Server loop

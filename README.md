@@ -1,5 +1,5 @@
 # elock
-Erlang library for distributed subscriptions.
+Erlang library for distributed term subscriptions.
 
 I tried to keep API as simple as possible.
 
@@ -8,33 +8,45 @@ I appreciate any pull requests for bug fixing, tests or extending the functional
 API
 -----
 
-    elock:start_link( SomeUniqueAtom )
+    esubscribe:start_link()
     
     Call it from an OTP supervisor as a permanent worker. Example:
     
-    MyLockServer = #{
-        id=>'$mylocks',
-        start=>{elock,start_link,[ '$mylocks' ]},
+    MySubsriptionsServer = #{
+        id=>esubscribe,
+        start=>{esubscribe,start_link,[]},
         restart=>permanent,
         shutdown=> <It's up to you>
         type=>worker,
-        modules=>[elock]
+        modules=>[esubscribe]
     },
+    
+    Ok now you are ready for subscriptions. If you need distributed subscriptions do the same
+    at your other nodes.
+    
+    If you want to subscribe on any erlang term call:
+    
+    {YesNodes,NoNodes} | {error, timeout} | {error, not_available} =  esubscribe:subscribe(Term, Nodes, PID, Timeout)
 
-    The process registers itself as '$mylocks', be carefull.
-    
-    Ok now you are ready for local locks. If you need distributed locks do the same
-    on your other nodes.
-    
-    If you need one more heap of lock start add another one to a supervisor. 
-    
-    If you want to lock any erlang term call:
-    
-    {ok,Unlock} | {error,timeout} =  elock:lock(Locks, Term, IsShared, Nodes, Timeout )
-
-    Locks is your '$mylocks'
     Term is any erlang term
+    Nodes is a list of nodes where you want subscribe
+    PID is self() ??? Why I need to pass my PID take it as self(). Yes you can subscribe another process
     Timeout is Milliseconds or infinity
+    
+    [Node1,Node2|_AndSoOn] = YesNodes are the nodes from Nodes where you were susccessful
+    
+    [{Node1,Reason1},{Node2,Reason2}|_AndSoOn] = NoNodes are the nodes where you failed with reasons
+    
+    If you want to notify on any term call:
+    
+    ok | {error, not_available} = esubscribe:notify( Term, Action )
+    
+    Term is any erlang term
+    Action is also any erlang term
+    
+    
+    
+    
     
     Others are more interesting:
 
