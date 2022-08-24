@@ -26,12 +26,16 @@ API
     
     If you want to subscribe on any erlang term call:
     
-    {YesNodes,NoNodes} | {error, timeout} | {error, not_available} =  esubscribe:subscribe(Term, Nodes, PID, Timeout)
+    {YesNodes,NoNodes} | {error, timeout} | {error, not_available} =  
+        esubscribe:subscribe(Term, Nodes, PID, Timeout)
 
     Term is any erlang term
     Nodes is a list of nodes where you want subscribe
-    PID is self() ??? Why I need to pass my PID take it as self(). Yes you can subscribe another process
     Timeout is Milliseconds or infinity
+
+    PID is self() Why I need to pass my PID? take it as self(). 
+    Yes you can subscribe another process.
+    
     
     [Node1,Node2|_AndSoOn] = YesNodes are the nodes from Nodes where you were susccessful
     
