@@ -15,10 +15,10 @@
   unsubscribe/3,
   notify/2,
   lookup/1,
-  wait/1,wait/2,wait/3
+  wait/2
 ]).
 
--define(SUBSCRIPTIONS,esubscriptions).
+-define(SUBSCRIPTIONS,'$esubscriptions').
 
 -define(LOGERROR(Text),lager:error(Text)).
 -define(LOGERROR(Text,Params),lager:error(Text,Params)).
