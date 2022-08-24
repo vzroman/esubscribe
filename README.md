@@ -43,22 +43,16 @@ API
     
     Term is any erlang term
     Action is also any erlang term
-    
-    
-    
-    
-    
-    Others are more interesting:
 
-    set IsShared = true if it is enough for you to be sure that the term is locked may be
-    even not by you. 
-    
-    Nodes is where else you want to lock the Term. If the Nodes is [] the Term
-    will be locked only locally
-
-    When you need to unlock the Term call Unlock() from returned to you {ok,Unlock}.
-
-    Avoid setting lock on the term you'v already locked, you will get a deadlock.
+    You can get your notification in 3 ways:
+    1 -> call 
+        [{Action1,Node1,Actor1},{Action2,Node2,Actor2}|_AndSoOn] = esubscribe:lookup( Term ) 
+    2 -> call
+        wait( Term, Timeout ) the format of the return is the same as for case 1
+    3 -> 
+        Classic erlang:
+        receive
+            {'$esubscription', Term, Action, Node, Actor}
 
     that's it.
     
@@ -69,7 +63,7 @@ BUILD
     Add it as a dependency to your application and you are ready (I use rebar3)
     {deps, [
         ......
-        {elock, {git, "git@github.com:vzroman/elock.git", {branch, "main"}}}
+        {esubscribe, {git, "git@github.com:vzroman/esubscribe.git", {branch, "main"}}}
     ]}.
 
 TODO

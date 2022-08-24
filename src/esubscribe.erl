@@ -99,30 +99,25 @@ notify( Term, Action )->
 lookup( Term )->
   receive
     {'$esubscription', Term, Action, Node, Actor}->
-      [{Term,Action,Node,Actor} | lookup( Term ) ]
+      [{Action,Node,Actor} | lookup( Term ) ]
   after
     0->[]
   end.
 
-wait( Term, Timeout ) when Timeout >0->
+wait( Term, infinity ) ->
+  receive
+    {'$esubscription', Term, Action, Node, Actor}->
+      [{Action,Node,Actor} | wait( Term, infinity ) ]
+  end;
+
+wait( Term, Timeout ) when Timeout >0 ->
   TS0 = erlang:system_time(millisecond),
   receive
     {'$esubscription', Term, Action, Node, Actor}->
-      [{Term,Action,Node,Actor} | wait( Term, Timeout-(erlang:system_time(millisecond) -TS0 )) ]
+      [{Action,Node,Actor} | wait( Term, Timeout-(erlang:system_time(millisecond) -TS0 )) ]
   after
     Timeout->[]
   end.
-
-wait( Term, Timeout, InFilter )->
-  Filter = compile_filter( maps:to_list(InFilter) ),
-  wait_filter( Term, Filter, Timeout ).
-compile_filter()
-  Action =
-    case maps:is_key( action, Filter) of
-      true -> [ maps:get(action,Filter) };
-      false->
-    end
-
 
 %%---------------------------------------------------------------------
 %%  Server loop
