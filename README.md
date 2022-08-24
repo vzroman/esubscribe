@@ -1,4 +1,4 @@
-# elock
+# esubscribe
 Erlang library for distributed term subscriptions.
 
 I tried to keep API as simple as possible.
