@@ -33,7 +33,7 @@ API
     Nodes is a list of nodes where you want subscribe
     Timeout is Milliseconds or infinity
 
-    PID is self() Why I need to pass my PID? take it as self(). 
+    PID is self() ??? Why I need to pass my PID, take it as self(). 
     Yes you can subscribe another process.
     
     
