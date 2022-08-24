@@ -1,0 +1,14 @@
+{application, esubscribe,
+ [{description, "erlang library for distributed term subscriptions"},
+  {vsn, git},
+  {registered, []},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {licenses, ["MIT"]},
+  {links, []}
+ ]}.
