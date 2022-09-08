@@ -135,7 +135,7 @@ wait_loop(Sup, Subs)->
 
     {unsubscribe, Term, Nodes, PID}->
       ?LOGDEBUG("~p unsubscribed from ~p at ~p",[PID,Term,Nodes]),
-      do_unsubscribe( Term, Nodes, PID ),
+      do_unsubscribe( PID, Term, Nodes ),
       NewSubs = remove_subscription( PID, Term, Nodes, Subs ),
       wait_loop( Sup, NewSubs );
 
