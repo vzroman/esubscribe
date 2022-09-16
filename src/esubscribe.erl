@@ -1,6 +1,7 @@
 
 -module(esubscribe).
 
+-include_lib("esubscribe.hrl").
 %%=================================================================
 %% OTP
 %%=================================================================
@@ -17,8 +18,18 @@
   lookup/1,
   wait/2
 ]).
+%%=================================================================
+%% This functions is exported only for test
+%%=================================================================
+-ifdef(TEST).
+-export([
+  where_to_subscribe/4,
+  do_subscribe/3,
+  add_subscription/4,
+  remove_subscription/4
+]).
+-endif.
 
--define(SUBSCRIPTIONS,'$esubscriptions').
 
 -define(LOGERROR(Text),lager:error(Text)).
 -define(LOGERROR(Text,Params),lager:error(Text,Params)).
@@ -29,7 +40,6 @@
 -define(LOGDEBUG(Text),lager:debug(Text)).
 -define(LOGDEBUG(Text,Params),lager:debug(Text,Params)).
 
--record(sub,{term,clients}).
 
 %%=================================================================
 %% Service API
@@ -287,9 +297,10 @@ remove_subscription( PID, Term, RemoveNodes, Subs )->
               Subs#{ PID=>Terms#{ Term => RestNodes }}
           end;
         _->
-          ignore
+          Subs
       end;
     _->
       % Who was it?
-      unlink( PID )
+      unlink( PID ),
+      Subs
   end.
