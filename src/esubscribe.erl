@@ -1,6 +1,7 @@
 
 -module(esubscribe).
 
+-include_lib("esubscribe.hrl").
 %%=================================================================
 %% OTP
 %%=================================================================
@@ -17,8 +18,18 @@
   lookup/1,
   wait/2
 ]).
+%%=================================================================
+%% This functions is exported only for test
+%%=================================================================
+-ifdef(TEST).
+-export([
+  where_to_subscribe/4,
+  do_subscribe/3,
+  add_subscription/4,
+  remove_subscription/4
+]).
+-endif.
 
--define(SUBSCRIPTIONS,'$esubscriptions').
 
 -define(LOGERROR(Text),lager:error(Text)).
 -define(LOGERROR(Text,Params),lager:error(Text,Params)).
@@ -29,7 +40,6 @@
 -define(LOGDEBUG(Text),lager:debug(Text)).
 -define(LOGDEBUG(Text,Params),lager:debug(Text,Params)).
 
--record(sub,{term,clients}).
 
 %%=================================================================
 %% Service API
@@ -69,6 +79,13 @@ subscribe(Term, Nodes, PID, Timeout)->
         {Server,YesNodes,NoNodes} -> {YesNodes,NoNodes}
       after
         Timeout->
+          Server ! {unsubscribe, Term, Nodes, PID},
+          receive
+            {Server,_YesNodes,_NoNodes} ->
+              ignore
+          after
+            10-> ignore
+          end,
           {error, timeout}
       end;
     _->
@@ -197,9 +214,9 @@ do_subscribe(PID, Term, Nodes)->
   {YesNodes,NoNodes}=
     if
       length(OtherNodes)>0->
-        Results = [{N, rpc:call(N, ?MODULE, subscribe, [Term,[N],PID]) } || N <- OtherNodes ],
+        Results = [{N, rpc:call(N, ?MODULE, subscribe, [Term,[N],PID,_Timeout = infinity]) } || N <- OtherNodes ],
         _YesNodes = [N || {N,{[N],[]}} <- Results ],
-        _NoNodes = [{N,Reason} || {N,{badrpc,Reason}} <- Results ],
+        _NoNodes = [{N,Reason} || {N,{Error,Reason}} <- Results, (Error =:= badrpc) or (Error =:= error) ],
         {_YesNodes,_NoNodes};
       true->
         {[],[]}
@@ -287,9 +304,10 @@ remove_subscription( PID, Term, RemoveNodes, Subs )->
               Subs#{ PID=>Terms#{ Term => RestNodes }}
           end;
         _->
-          ignore
+          Subs
       end;
     _->
       % Who was it?
-      unlink( PID )
+      unlink( PID ),
+      Subs
   end.
