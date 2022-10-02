@@ -23,21 +23,23 @@ API
     
     Ok now you are ready for subscriptions. If you need distributed subscriptions do the same
     at your other nodes.
-    
+
     If you want to subscribe on any erlang term call:
     
-    {YesNodes,NoNodes} | {error, timeout} | {error, not_available} =  
-        esubscribe:subscribe(Term, Nodes, PID, Timeout)
+    ok = esubscribe:subscribe(Term, PID)
 
     Term is any erlang term
-    Nodes is a list of nodes where you want subscribe
-    Timeout is Milliseconds or infinity
-
     PID is self() ??? Why I need to pass my PID, take it as self(). 
     Yes you can subscribe another process.
     
+    If you want to subscribe on any erlang term on several nodes call:
     
-    [Node1,Node2|_AndSoOn] = YesNodes are the nodes from Nodes where you were susccessful
+    {YesNodes,NoNodes} =  
+        esubscribe:subscribe(Term, PID, Nodes)
+
+    Nodes is a list of nodes where you want subscribe
+
+    [{Node1,ok},{Node2,ok}|_AndSoOn] = YesNodes are the nodes from Nodes where you were susccessful
     
     [{Node1,Reason1},{Node2,Reason2}|_AndSoOn] = NoNodes are the nodes where you failed with reasons
     
