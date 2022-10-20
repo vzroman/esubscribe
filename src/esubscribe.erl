@@ -5,17 +5,17 @@
 %% OTP
 %%=================================================================
 -export([
-  start_link/0
+  start_link/0, start_link/1
 ]).
 %%=================================================================
 %% API
 %%=================================================================
 -export([
-  subscribe/2, subscribe/3,
-  unsubscribe/2, unsubscribe/3,
-  notify/2,
-  lookup/1,
-  wait/2
+  subscribe/2, subscribe/3, subscribe/4,
+  unsubscribe/2, unsubscribe/3, unsubscribe/4,
+  notify/2,notify/3,
+  lookup/1, lookup/2,
+  wait/2, wait/3
 ]).
 %%=================================================================
 %% This functions is exported only for test
