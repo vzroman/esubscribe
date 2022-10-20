@@ -20,8 +20,8 @@
 %%=================================================================
 %% This functions is exported only for test
 %%=================================================================
-
--define(SUBSCRIPTIONS,'$esubscriptions').
+-define(GLOBAL_SCOPE,'$esusbcription$').
+-define(PID_NAME(Scope),list_to_atom( atom_to_list(Scope)++"_server")).
 
 -define(LOGERROR(Text),lager:error(Text)).
 -define(LOGERROR(Text,Params),lager:error(Text,Params)).
@@ -36,19 +36,22 @@
 %% Service API
 %%=================================================================
 start_link() ->
-  case whereis( ?MODULE ) of
+  start_link( ?GLOBAL_SCOPE ).
+
+start_link( Scope ) ->
+  case whereis( ?PID_NAME(Scope) ) of
     PID when is_pid( PID )->
       {error, {already_started, PID}};
     _ ->
-      {ok, spawn_link(fun()-> init() end)}
+      {ok, spawn_link(fun()-> init( Scope ) end)}
   end.
 
-init()->
+init( Scope )->
 
-  register(?MODULE, self()),
+  register(?PID_NAME(Scope), self()),
 
   % Prepare the storage for locks
-  ets:new(?SUBSCRIPTIONS,[named_table,public,bag]),
+  ets:new(Scope,[named_table,public,bag]),
 
   timer:sleep(infinity).
 
@@ -57,73 +60,85 @@ init()->
 %%	Subscriptions API
 %%=================================================================
 subscribe(Term, PID)->
-  Clients = ets:lookup(?SUBSCRIPTIONS, Term),
+  subscribe(?GLOBAL_SCOPE, Term, PID).
+subscribe(Scope, Term, PID) when is_pid(PID)->
+  Clients = ets:lookup(Scope, Term),
   case [registered || {_,C,_} <- Clients, C=:= PID] of
     []->
       spawn(fun()->
-        ets:insert(?SUBSCRIPTIONS,{ Term, PID, self() }),
+        ets:insert(Scope,{ Term, PID, self() }),
         ?LOGDEBUG("~p subscribed on ~p",[PID, Term]),
-        guard( monitor(process, PID), Term, PID  )
+        guard( monitor(process, PID), Scope, Term, PID  )
       end);
     _->
       % Already registered
       ignore
   end,
-  ok.
+  ok;
+subscribe(Term, PID, Nodes) when is_list( Nodes )->
+  subscribe(?GLOBAL_SCOPE, Term, PID, Nodes ).
+subscribe(Scope, Term, PID, Nodes) when is_list( Nodes )->
+  ecall:call_all_wait(Nodes,?MODULE,?FUNCTION_NAME,[Scope,Term,PID]).
 
-guard( Ref, Term, PID )->
+guard( Ref, Scope, Term, PID )->
   receive
     unsubscribe->
       ?LOGDEBUG("~p unsubscribed from ~p",[PID,Term]),
-      ets:delete_object( ?SUBSCRIPTIONS, {Term, PID, self()} );
+      ets:delete_object( Scope, {Term, PID, self()} );
     {'DOWN', Ref, _Type, _Object, _Info}->
       ?LOGDEBUG("~p down unsubscribe from ~p",[PID,Term]),
-      ets:delete_object( ?SUBSCRIPTIONS, {Term, PID, self()} );
+      ets:delete_object( Scope, {Term, PID, self()} );
     _->
-      guard( Ref, Term, PID )
+      guard( Ref, Scope,Term, PID )
   end.
 
-subscribe(Term, PID, Nodes)->
-  ecall:call_all_wait(Nodes,?MODULE,?FUNCTION_NAME,[Term,PID]).
-
 unsubscribe( Term, PID )->
-  [ G ! unsubscribe || {_,C,G} <- ets:lookup(?SUBSCRIPTIONS, Term), C=:=PID ],
-  ok.
-
-unsubscribe( Term, PID, Nodes )->
-  ecall:call_all_wait(Nodes,?MODULE,?FUNCTION_NAME,[Term,PID]).
+  unsubscribe( ?GLOBAL_SCOPE, Term, PID ).
+unsubscribe(Scope, Term, PID ) when is_pid(PID)->
+  [ G ! unsubscribe || {_,C,G} <- ets:lookup(Scope, Term), C=:=PID ],
+  ok;
+unsubscribe( Term, PID, Nodes ) when is_list(Nodes)->
+  unsubscribe(?GLOBAL_SCOPE, Term, PID, Nodes).
+unsubscribe(Scope, Term, PID, Nodes ) when is_list(Nodes)->
+  ecall:call_all_wait(Nodes,?MODULE,?FUNCTION_NAME,[Scope,Term,PID]).
 
 notify( Term, Action )->
-  try case ets:lookup(?SUBSCRIPTIONS, Term) of
+  notify(?GLOBAL_SCOPE, Term, Action).
+notify(Scope, Term, Action )->
+  try case ets:lookup(Scope, Term) of
     [] ->
       ok;
     Clients->
       Node = node(), Self = self(),
-      [ C ! {'$esubscription', Term, Action, Node, Self} || {_,C,_} <- Clients ],
+      [ C ! {Scope, Term, Action, Node, Self} || {_,C,_} <- Clients ],
       ok
   end catch
     _:_-> {error, not_available}
   end.
 
 lookup( Term )->
+  lookup(?GLOBAL_SCOPE, Term ).
+lookup(Scope, Term)->
   receive
-    {'$esubscription', Term, Action, Node, Actor}->
-      [{Action,Node,Actor} | lookup( Term ) ]
+    {Scope, Term, Action, Node, Actor}->
+      [{Action,Node,Actor} | lookup(Scope, Term ) ]
   after
     0->[]
   end.
 
-wait( Term, infinity ) ->
+wait( Term, Timeout ) ->
+  wait(?GLOBAL_SCOPE, Term, Timeout).
+wait(Scope, Term, infinity ) ->
   receive
-    {'$esubscription', Term, Action, Node, Actor}->
-      [{Action,Node,Actor} | wait( Term, infinity ) ]
+    {Scope, Term, Action, Node, Actor}->
+      [{Action,Node,Actor} | wait(Scope, Term, infinity ) ]
   end;
 
-wait( Term, Timeout ) when Timeout >0 ->
+wait(Scope, Term, Timeout ) when Timeout >0 ->
   TS0 = erlang:system_time(millisecond),
   receive
-    {'$esubscription', Term, Action, Node, Actor}->
-      [{Action,Node,Actor} | wait( Term, Timeout-(erlang:system_time(millisecond) -TS0 )) ]
+    {Scope, Term, Action, Node, Actor}->
+      [{Action,Node,Actor} | wait(Scope, Term, Timeout-(erlang:system_time(millisecond) -TS0 )) ]
   after
     Timeout->[]
   end.
