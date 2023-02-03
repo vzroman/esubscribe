@@ -51,7 +51,12 @@ init( Scope )->
   register(?PID_NAME(Scope), self()),
 
   % Prepare the storage for locks
-  ets:new(Scope,[named_table,public,bag]),
+  ets:new(Scope,[
+    named_table,
+    public,bag,
+    {read_concurrency, true},
+    {write_concurrency,auto}
+  ]),
 
   timer:sleep(infinity).
 
