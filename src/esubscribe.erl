@@ -55,7 +55,7 @@ init( Scope )->
     named_table,
     public,bag,
     {read_concurrency, true},
-    {write_concurrency, auto}
+    {write_concurrency, true}
   ]),
 
   timer:sleep(infinity).
