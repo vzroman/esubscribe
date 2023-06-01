@@ -115,7 +115,7 @@ notify(Scope, Term, Action )->
       ok;
     Clients->
       Node = node(), Self = self(),
-      [ C ! {Scope, Term, Action, Node, Self} || {_,C,_} <- Clients ],
+      [ ecall:send(C, {Scope, Term, Action, Node, Self} ) || {_,C,_} <- Clients ],
       ok
   end catch
     _:_-> {error, not_available}
