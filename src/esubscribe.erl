@@ -89,10 +89,10 @@ guard( Ref, Scope, Term, PID )->
   receive
     unsubscribe->
       ?LOGDEBUG("~p unsubscribed from ~p",[PID,Term]),
-      ets:delete_object( Scope, {Term, PID, self()} );
+      catch ets:delete_object( Scope, {Term, PID, self()} );
     {'DOWN', Ref, _Type, _Object, _Info}->
       ?LOGDEBUG("~p down unsubscribe from ~p",[PID,Term]),
-      ets:delete_object( Scope, {Term, PID, self()} );
+      catch ets:delete_object( Scope, {Term, PID, self()} );
     _->
       guard( Ref, Scope,Term, PID )
   end.
