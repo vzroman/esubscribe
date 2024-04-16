@@ -146,5 +146,7 @@ wait(Scope, Term, Timeout ) when Timeout >0 ->
       [{Action,Node,Actor} | wait(Scope, Term, Timeout-(erlang:system_time(millisecond) -TS0 )) ]
   after
     Timeout->[]
-  end.
+  end;
+wait(_Scope, _Term, _Timeout ) ->
+  [].
 
