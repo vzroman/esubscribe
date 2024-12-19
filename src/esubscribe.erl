@@ -1,6 +1,8 @@
 
 -module(esubscribe).
 
+-include("esubscribe.hrl").
+
 %%=================================================================
 %% OTP
 %%=================================================================
@@ -22,15 +24,6 @@
 %%=================================================================
 -define(GLOBAL_SCOPE,'$esusbcription$').
 -define(PID_NAME(Scope),list_to_atom( atom_to_list(Scope)++"_server")).
-
--define(LOGERROR(Text),lager:error(Text)).
--define(LOGERROR(Text,Params),lager:error(Text,Params)).
--define(LOGWARNING(Text),lager:warning(Text)).
--define(LOGWARNING(Text,Params),lager:warning(Text,Params)).
--define(LOGINFO(Text),lager:info(Text)).
--define(LOGINFO(Text,Params),lager:info(Text,Params)).
--define(LOGDEBUG(Text),lager:debug(Text)).
--define(LOGDEBUG(Text,Params),lager:debug(Text,Params)).
 
 %%=================================================================
 %% Service API
